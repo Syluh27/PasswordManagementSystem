@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from database import guardar_contraseña, obtener_contraseña, listar_contraseñas, eliminar_contraseña
+from database import guardar_contraseña, obtener_contraseña, listar_contraseñas, eliminar_contraseña, exportar_contraseñas, importar_contraseñas
 
 # Contraseña maestra
 MASTER_PASSWORD = "admin123"  # Cambia esta contraseña según tus necesidades
@@ -69,10 +69,25 @@ def iniciar_sistema():
         for sitio, usuario in contraseñas:
             tree.insert("", "end", values=(sitio, usuario))
 
+    def exportar():
+        try:
+            exportar_contraseñas()
+            messagebox.showinfo("Éxito", "Contraseñas exportadas exitosamente a 'contraseñas_backup.csv'.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al exportar contraseñas: {e}")
+
+    def importar():
+        try:
+            importar_contraseñas()
+            actualizar_lista()
+            messagebox.showinfo("Éxito", "Contraseñas importadas exitosamente desde 'contraseñas_backup.csv'.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al importar contraseñas: {e}")
+
     # Configuración de la ventana principal
     root = tk.Tk()
     root.title("Gestor de Contraseñas")
-    root.geometry("500x450")
+    root.geometry("500x500")
     root.resizable(False, False)
 
     # Marco principal
@@ -92,10 +107,11 @@ def iniciar_sistema():
     entry_contraseña = ttk.Entry(frame, width=30, show="*")
     entry_contraseña.grid(row=2, column=1, padx=5, pady=5)
 
-    # Botones
+    # Botones principales
     ttk.Button(frame, text="Guardar", command=guardar).grid(row=3, column=0, columnspan=2, pady=10)
     ttk.Button(frame, text="Recuperar", command=recuperar).grid(row=4, column=0, columnspan=2, pady=5)
-    ttk.Button(frame, text="Eliminar", command=eliminar).grid(row=6, column=0, columnspan=2, pady=5)
+    ttk.Button(frame, text="Exportar Contraseñas", command=exportar).grid(row=5, column=0, columnspan=2, pady=10)
+    ttk.Button(frame, text="Importar Contraseñas", command=importar).grid(row=6, column=0, columnspan=2, pady=5)
 
     # Tabla para visualizar contraseñas
     tree = ttk.Treeview(frame, columns=("Sitio", "Usuario"), show="headings", height=5)
@@ -103,7 +119,10 @@ def iniciar_sistema():
     tree.heading("Usuario", text="Usuario")
     tree.column("Sitio", width=200)
     tree.column("Usuario", width=150)
-    tree.grid(row=5, column=0, columnspan=2, pady=10)
+    tree.grid(row=7, column=0, columnspan=2, pady=10)
+
+    # Botón Eliminar (debajo de la tabla)
+    ttk.Button(frame, text="Eliminar", command=eliminar).grid(row=8, column=0, columnspan=2, pady=10)
 
     # Barra de estado
     status_bar = ttk.Label(root, text="Gestor de Contraseñas - Seguridad Primero 🔐", relief="sunken", anchor="center")
