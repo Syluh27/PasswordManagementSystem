@@ -16,7 +16,6 @@ def init_config():
         )
     ''')
 
-    # Comprobar si la contraseña maestra ya está almacenada
     cursor.execute("SELECT clave_maestra FROM config LIMIT 1")
     if not cursor.fetchone():
         clave_maestra = "123"  # 🔹 Cambia aquí tu contraseña maestra
@@ -25,6 +24,7 @@ def init_config():
 
     conn.commit()
     conn.close()
+
 
 def verificar_clave_maestra(clave_ingresada):
     """Verifica si la contraseña maestra ingresada es correcta."""
@@ -38,6 +38,7 @@ def verificar_clave_maestra(clave_ingresada):
     if resultado and bcrypt.checkpw(clave_ingresada.encode(), resultado[0]):
         return True
     return False
+
 
 def init_db():
     """Crea la base de datos y la tabla si no existen."""
@@ -68,7 +69,7 @@ def guardar_contraseña(sitio, usuario, contraseña):
                    (sitio, usuario, contraseña_cifrada, iv, tag))
     conn.commit()
     conn.close()
-    print("Contraseña guardada exitosamente.")
+    print("✅ Contraseña guardada exitosamente.")
 
 
 def obtener_contraseña(sitio, usuario):
@@ -82,24 +83,31 @@ def obtener_contraseña(sitio, usuario):
     if resultado:
         contraseña_cifrada, iv, tag = resultado
         return decrypt_password(contraseña_cifrada, iv, tag)
-    else:
-        return None
+    return None
 
 
-def listar_contraseñas():
-    """Muestra todos los sitios y usuarios almacenados."""
-    conn = sqlite3.connect("passwords.db")
+import sqlite3
+
+def eliminar_contraseña(sitio, usuario):
+    conn = sqlite3.connect("contraseñas.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT sitio, usuario FROM passwords")
-    resultados = cursor.fetchall()
+    cursor.execute("DELETE FROM contraseñas WHERE sitio = ? AND usuario = ?", (sitio, usuario))
+    conn.commit()
     conn.close()
+def listar_contraseñas():
+    """Lista todas las contraseñas almacenadas en la base de datos."""
+    try:
+        conn = sqlite3.connect("passwords.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT sitio, usuario FROM passwords")  # Verifica que la tabla se llame 'passwords'
+        contraseñas = cursor.fetchall()
+        conn.close()
 
-    if resultados:
-        print("\n--- Contraseñas Guardadas ---")
-        for sitio, usuario in resultados:
-            print(f"Sitio: {sitio}, Usuario: {usuario}")
-    else:
-        print("No hay contraseñas almacenadas.")
+        return contraseñas  # Asegura que siempre devuelva una lista
+
+    except Exception as e:
+        print(f"Error al listar contraseñas: {e}")
+        return []
 
 
 def eliminar_contraseña(sitio, usuario):
@@ -109,7 +117,7 @@ def eliminar_contraseña(sitio, usuario):
     cursor.execute("DELETE FROM passwords WHERE sitio=? AND usuario=?", (sitio, usuario))
     conn.commit()
     conn.close()
-    print("Contraseña eliminada exitosamente.")
+    print("✅ Contraseña eliminada exitosamente.")
 
 
 def exportar_contraseñas():
@@ -124,7 +132,7 @@ def exportar_contraseñas():
         escritor = csv.writer(archivo)
         escritor.writerow(["Sitio", "Usuario", "Contraseña Cifrada", "IV", "Tag"])
         escritor.writerows(resultados)
-    print("Contraseñas exportadas exitosamente a 'contraseñas_backup.csv'.")
+    print("✅ Contraseñas exportadas exitosamente a 'contraseñas_backup.csv'.")
 
 
 def importar_contraseñas():
@@ -141,58 +149,59 @@ def importar_contraseñas():
 
     conn.commit()
     conn.close()
-    print("Contraseñas importadas exitosamente desde 'contraseñas_backup.csv'.")
+    print("✅ Contraseñas importadas exitosamente desde 'contraseñas_backup.csv'.")
 
 
 def menu():
     """Interfaz de línea de comandos para gestionar contraseñas."""
-    clave_ingresada = input("🔑 Ingrese la contraseña maestra: ")
+    clave_ingresada = input("\n🔑 Ingrese la contraseña maestra: ")
     if not verificar_clave_maestra(clave_ingresada):
         print("❌ Contraseña incorrecta. Saliendo...")
         return
 
     while True:
-        print("\n--- Gestor de Contraseñas ---")
-        print("1. Guardar una nueva contraseña")
-        print("2. Recuperar una contraseña")
-        print("3. Listar todas las contraseñas")
-        print("4. Eliminar una contraseña")
-        print("5. Exportar contraseñas a CSV")
-        print("6. Importar contraseñas desde CSV")
-        print("7. Salir")
-        opcion = input("Seleccione una opción: ")
+        print("\n--- 🔐 GESTOR DE CONTRASEÑAS 🔐 ---")
+        print("1️⃣ Guardar una nueva contraseña")
+        print("2️⃣ Recuperar una contraseña")
+        print("3️⃣ Listar todas las contraseñas")
+        print("4️⃣ Eliminar una contraseña")
+        print("5️⃣ Exportar contraseñas a CSV")
+        print("6️⃣ Importar contraseñas desde CSV")
+        print("7️⃣ Salir")
+
+        opcion = input("\nSeleccione una opción: ")
 
         if opcion == "1":
-            sitio = input("Ingrese el sitio web: ")
-            usuario = input("Ingrese el nombre de usuario: ")
-            contraseña = input("Ingrese la contraseña: ")
+            sitio = input("🔹 Ingrese el sitio web: ")
+            usuario = input("👤 Ingrese el nombre de usuario: ")
+            contraseña = input("🔑 Ingrese la contraseña: ")
             guardar_contraseña(sitio, usuario, contraseña)
         elif opcion == "2":
-            sitio = input("Ingrese el sitio web: ")
-            usuario = input("Ingrese el nombre de usuario: ")
+            sitio = input("🔹 Ingrese el sitio web: ")
+            usuario = input("👤 Ingrese el nombre de usuario: ")
             contraseña = obtener_contraseña(sitio, usuario)
             if contraseña:
-                print(f"Contraseña recuperada: {contraseña}")
+                print(f"✅ Contraseña recuperada: {contraseña}")
             else:
-                print("No se encontró una contraseña para esos datos.")
+                print("⚠️ No se encontró una contraseña para esos datos.")
         elif opcion == "3":
             listar_contraseñas()
         elif opcion == "4":
-            sitio = input("Ingrese el sitio web: ")
-            usuario = input("Ingrese el nombre de usuario: ")
+            sitio = input("🔹 Ingrese el sitio web: ")
+            usuario = input("👤 Ingrese el nombre de usuario: ")
             eliminar_contraseña(sitio, usuario)
         elif opcion == "5":
             exportar_contraseñas()
         elif opcion == "6":
             importar_contraseñas()
         elif opcion == "7":
-            print("Saliendo...")
+            print("👋 Saliendo del sistema...")
             break
         else:
-            print("Opción no válida, intente de nuevo.")
-
+            print("⚠️ Opción no válida, intente de nuevo.")
 
 
 if __name__ == "__main__":
     init_db()
+    init_config()
     menu()

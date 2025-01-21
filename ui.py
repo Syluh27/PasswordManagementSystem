@@ -1,77 +1,130 @@
 import tkinter as tk
-from tkinter import messagebox, simpledialog  # Importar simpledialog correctamente
-from database import guardar_contraseña, obtener_contraseña, exportar_contraseñas, importar_contraseñas
+from tkinter import ttk, messagebox
+from database import guardar_contraseña, obtener_contraseña, listar_contraseñas, eliminar_contraseña
 
-def guardar():
-    sitio = entry_sitio.get()
-    usuario = entry_usuario.get()
-    contrasena = entry_contrasena.get()
-    if sitio and usuario and contrasena:
-        guardar_contraseña(sitio, usuario, contrasena)
-        messagebox.showinfo("Éxito", "Contraseña guardada exitosamente")
-        entry_sitio.delete(0, tk.END)
-        entry_usuario.delete(0, tk.END)
-        entry_contrasena.delete(0, tk.END)
+# Contraseña maestra
+MASTER_PASSWORD = "admin123"  # Cambia esta contraseña según tus necesidades
+
+
+def verificar_contraseña_maestra():
+    """Función para verificar la contraseña maestra."""
+    entrada = entry_maestra.get()
+    if entrada == MASTER_PASSWORD:
+        ventana_maestra.destroy()  # Cierra la ventana de contraseña maestra
+        iniciar_sistema()  # Llama a la función para iniciar el sistema principal
     else:
-        messagebox.showwarning("Error", "Todos los campos son obligatorios")
+        messagebox.showerror("Acceso denegado", "Contraseña maestra incorrecta.")
 
-def recuperar():
-    sitio = entry_sitio.get()
-    usuario = entry_usuario.get()
-    if sitio and usuario:
-        contrasena = obtener_contraseña(sitio, usuario)
-        if contrasena:
-            messagebox.showinfo("Contraseña Recuperada", f"Contraseña: {contrasena}")
+
+def iniciar_sistema():
+    """Función principal del gestor de contraseñas."""
+    def eliminar():
+        seleccionado = tree.selection()
+        if not seleccionado:
+            messagebox.showwarning("Error", "Selecciona una fila para eliminar.")
+            return
+
+        # Obtener los valores de la fila seleccionada
+        item = tree.item(seleccionado)
+        sitio, usuario = item["values"]
+
+        # Confirmar la eliminación
+        confirmar = messagebox.askyesno("Confirmar eliminación",
+                                        f"¿Deseas eliminar la contraseña para {sitio} - {usuario}?")
+        if confirmar:
+            eliminar_contraseña(sitio, usuario)
+            actualizar_lista()
+            messagebox.showinfo("Éxito", "Contraseña eliminada exitosamente")
+
+    def guardar():
+        sitio = entry_sitio.get()
+        usuario = entry_usuario.get()
+        contrasena = entry_contraseña.get()
+        if sitio and usuario and contrasena:
+            guardar_contraseña(sitio, usuario, contrasena)
+            messagebox.showinfo("Éxito", "Contraseña guardada exitosamente")
+            entry_sitio.delete(0, tk.END)
+            entry_usuario.delete(0, tk.END)
+            entry_contraseña.delete(0, tk.END)
+            actualizar_lista()
         else:
-            messagebox.showwarning("Error", "No se encontró la contraseña")
-    else:
-        messagebox.showwarning("Error", "Debes ingresar el sitio y usuario")
+            messagebox.showwarning("Error", "Todos los campos son obligatorios")
 
-def exportar():
-    exportar_contraseñas()
-    messagebox.showinfo("Éxito", "Contraseñas exportadas correctamente")
+    def recuperar():
+        sitio = entry_sitio.get()
+        usuario = entry_usuario.get()
+        if sitio and usuario:
+            contrasena = obtener_contraseña(sitio, usuario)
+            if contrasena:
+                messagebox.showinfo("Contraseña Recuperada", f"Contraseña: {contrasena}")
+            else:
+                messagebox.showwarning("Error", "No se encontró la contraseña")
+        else:
+            messagebox.showwarning("Error", "Debes ingresar el sitio y usuario")
 
-def importar():
-    importar_contraseñas()
-    messagebox.showinfo("Éxito", "Contraseñas importadas correctamente")
-# Definir la contraseña maestra
-MASTER_PASSWORD = "123"  # Cambia esto por tu contraseña segura
+    def actualizar_lista():
+        contraseñas = listar_contraseñas()
+        for row in tree.get_children():
+            tree.delete(row)
+        for sitio, usuario in contraseñas:
+            tree.insert("", "end", values=(sitio, usuario))
 
-def verificar_maestra():
-    """Solicita la contraseña maestra antes de acceder a la aplicación."""
-    entrada = tk.simpledialog.askstring("Contraseña Maestra", "Ingrese la contraseña maestra:", show="*")
-    if entrada != MASTER_PASSWORD:
-        messagebox.showerror("Acceso Denegado", "Contraseña incorrecta. Cerrando aplicación.")
-        root.destroy()  # Cierra la aplicación si la contraseña es incorrecta
+    # Configuración de la ventana principal
+    root = tk.Tk()
+    root.title("Gestor de Contraseñas")
+    root.geometry("500x450")
+    root.resizable(False, False)
 
-# Crear ventana principal
-root = tk.Tk()
-root.withdraw()  # Oculta la ventana hasta que se ingrese la contraseña maestra
+    # Marco principal
+    frame = ttk.Frame(root, padding=10)
+    frame.pack(expand=True, fill="both")
 
-verificar_maestra()  # Pide la contraseña maestra antes de mostrar la ventana
+    # Etiquetas y entradas
+    ttk.Label(frame, text="Sitio:").grid(row=0, column=0, sticky="w")
+    entry_sitio = ttk.Entry(frame, width=30)
+    entry_sitio.grid(row=0, column=1, padx=5, pady=5)
 
-root.deiconify()  # Muestra la ventana si la contraseña es correcta
-root.title("Gestor de Contraseñas")
-root.geometry("400x300")
+    ttk.Label(frame, text="Usuario:").grid(row=1, column=0, sticky="w")
+    entry_usuario = ttk.Entry(frame, width=30)
+    entry_usuario.grid(row=1, column=1, padx=5, pady=5)
 
-# Etiquetas y entradas
-tk.Label(root, text="Sitio:").pack()
-entry_sitio = tk.Entry(root)
-entry_sitio.pack()
+    ttk.Label(frame, text="Contraseña:").grid(row=2, column=0, sticky="w")
+    entry_contraseña = ttk.Entry(frame, width=30, show="*")
+    entry_contraseña.grid(row=2, column=1, padx=5, pady=5)
 
-tk.Label(root, text="Usuario:").pack()
-entry_usuario = tk.Entry(root)
-entry_usuario.pack()
+    # Botones
+    ttk.Button(frame, text="Guardar", command=guardar).grid(row=3, column=0, columnspan=2, pady=10)
+    ttk.Button(frame, text="Recuperar", command=recuperar).grid(row=4, column=0, columnspan=2, pady=5)
+    ttk.Button(frame, text="Eliminar", command=eliminar).grid(row=6, column=0, columnspan=2, pady=5)
 
-tk.Label(root, text="Contraseña:").pack()
-entry_contrasena = tk.Entry(root, show="*")
-entry_contrasena.pack()
+    # Tabla para visualizar contraseñas
+    tree = ttk.Treeview(frame, columns=("Sitio", "Usuario"), show="headings", height=5)
+    tree.heading("Sitio", text="Sitio")
+    tree.heading("Usuario", text="Usuario")
+    tree.column("Sitio", width=200)
+    tree.column("Usuario", width=150)
+    tree.grid(row=5, column=0, columnspan=2, pady=10)
 
-# Botones
-tk.Button(root, text="Guardar", command=guardar).pack()
-tk.Button(root, text="Recuperar", command=recuperar).pack()
-tk.Button(root, text="Exportar CSV", command=exportar).pack()
-tk.Button(root, text="Importar CSV", command=importar).pack()
+    # Barra de estado
+    status_bar = ttk.Label(root, text="Gestor de Contraseñas - Seguridad Primero 🔐", relief="sunken", anchor="center")
+    status_bar.pack(side="bottom", fill="x")
 
-# Iniciar bucle de Tkinter
-root.mainloop()
+    # Cargar datos en la tabla al iniciar
+    actualizar_lista()
+
+    root.mainloop()
+
+
+# Ventana de inicio para la contraseña maestra
+ventana_maestra = tk.Tk()
+ventana_maestra.title("Acceso al Gestor de Contraseñas")
+ventana_maestra.geometry("400x200")
+ventana_maestra.resizable(False, False)
+
+ttk.Label(ventana_maestra, text="Ingrese la contraseña maestra:", font=("Arial", 12)).pack(pady=20)
+entry_maestra = ttk.Entry(ventana_maestra, width=30, show="*")
+entry_maestra.pack(pady=5)
+
+ttk.Button(ventana_maestra, text="Ingresar", command=verificar_contraseña_maestra).pack(pady=10)
+
+ventana_maestra.mainloop()
